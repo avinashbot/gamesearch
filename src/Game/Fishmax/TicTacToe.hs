@@ -1,6 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module Game.Fishmax.TicTacToe (start, PlaceSymbol(..)) where
+module Game.Fishmax.TicTacToe (start, Draw(..)) where
 
 import Data.Array.IArray (Array, array, (!), (//))
 import Data.Maybe (mapMaybe, listToMaybe, isJust, isNothing)
@@ -10,12 +10,15 @@ import Debug.Trace (trace)
 data Player = Max | Min deriving (Eq, Show)
 data Space = Occupied Player | Empty deriving (Eq, Show)
 
-data State = State { grid :: Array (Int, Int) Space, turn :: Player } deriving (Show)
+data State = State
+    { grid :: Array (Int, Int) Space
+    , turn :: Player
+    } deriving (Show)
 
-newtype PlaceSymbol = PlaceSymbol (Int, Int) deriving (Eq, Ord, Show)
-instance Action PlaceSymbol
+newtype Draw = Draw (Int, Int) deriving (Eq, Ord, Show)
+instance Action Draw
 
-instance Spec State PlaceSymbol where
+instance Spec State Draw where
     -- If the game is over and there's a winner.
     isFinal s = isJust (winner s) || null (actions s)
 
@@ -27,12 +30,12 @@ instance Spec State PlaceSymbol where
         | otherwise = Nothing
 
     -- Returns positions where the columns are not filled up.
-    actions s = map PlaceSymbol $
+    actions s = map Draw $
                 filter (\a -> (grid s ! a) == Empty)
                        [(a, b) | a <- [0..2], b <- [0..2]]
 
     -- Applies action a to board b.
-    apply (PlaceSymbol p) s = s
+    apply (Draw p) s = s
         { grid = grid s // [(p, Occupied (turn s))]
         , turn = if turn s == Max then Min else Max
         }
@@ -40,7 +43,7 @@ instance Spec State PlaceSymbol where
 start :: State
 start = State
     { grid = array ((0, 0), (2, 2)) [((a, b), Empty) | a <- [0..2], b <- [0..2]]
-    , turn = Max
+    , turn = Min
     }
 
 winner :: State -> Maybe Player

@@ -1,1 +1,5 @@
-module Game.Fishmax where
+module Game.Fishmax
+    ( module Game.Fishmax.TreeSearch
+    ) where
+
+import Game.Fishmax.TreeSearch
