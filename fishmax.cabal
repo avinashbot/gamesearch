@@ -21,6 +21,7 @@ executable fishmax
       base >= 4.7 && < 5
     , random == 1.1.*
     , containers == 0.5.10.*
+    , array == 0.5.1.*
 
 test-suite spec
   hs-source-dirs: src test
@@ -30,6 +31,11 @@ test-suite spec
       base >= 4.7 && < 5
     , hspec == 2.4.*
     , containers == 0.5.10.*
+    , random == 1.1.*
+    , array == 0.5.1.*
   other-modules:
+      Game.Fishmax.TicTacToe
+      Game.Fishmax.TreeSearch
       Game.FishmaxSpec
+      Game.Fishmax.TreeSearchSpec
       Game.Fishmax.ModelSpec

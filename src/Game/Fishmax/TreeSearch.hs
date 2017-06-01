@@ -7,19 +7,21 @@ module Game.Fishmax.TreeSearch
 
     , emptyNode
     , monteCarlo
+    , payouts
     ) where
 
 import System.Random (RandomGen, randomR)
-import Data.List (find)
+import Data.List (find, sortOn)
 import Data.Maybe (fromJust, isJust)
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
+import Debug.Trace (trace)
 
 -- A Game Action
-class (Eq a, Ord a) => Action a
+class (Eq a, Ord a, Show a) => Action a
 
 -- A game state.
-class (Eq a, Ord a) => Spec s a | s -> a where
+class (Action a, Show s) => Spec s a | s -> a where
     -- Returns whether a state is a leaf state.
     isFinal :: s -> Bool
     -- Payout function for the player for the leaf state.
@@ -45,12 +47,22 @@ emptyNode = Node { children = Map.empty, meanPayout = 0, playCount = 0 }
 -- Run monte carlo simulation, returning the updated node, the updated
 -- random generator, and the resulting payout of the simulation.
 monteCarlo :: (RandomGen r, Action a, Spec s a) => r -> s -> Node a -> (Node a, (r, Double))
-monteCarlo rand state node =
-    if   isJust unexpanded
-    then selectSim (fromJust unexpanded) rand state node
-    else selectUCT rand state node
-    where
-        unexpanded = findUnexpanded state node
+monteCarlo rand state node
+    | isFinal state     = (node, (rand, fromJust (payout state)))
+    | isJust unexpanded = selectSim (fromJust unexpanded) rand state node
+    | otherwise         = selectUCT rand state node
+    where unexpanded = findUnexpanded state node
+
+-- Return a map of payouts for each initial action.
+payouts :: Action a => Node a -> Map.Map a Double
+payouts node = Map.map meanPayout (children node)
+
+-- Looks for an unexpanded action to start simulation from.
+-- If it returns Just a, start simulating from (a).
+-- If it returns Nothing, continue selecting down using the uct function.
+findUnexpanded :: (Action a, Spec s a) => s -> Node a -> Maybe a
+findUnexpanded s n = find isUnexpanded (actions s) where
+    isUnexpanded a = Map.notMember a (children n)
 
 -- Create a new node and simulate from there.
 selectSim :: (RandomGen r, Action a, Spec s a) => a -> r -> s -> Node a -> (Node a, (r, Double))
@@ -73,7 +85,7 @@ simulate :: (RandomGen r, Spec s a) => r -> s -> (r, Double)
 simulate rand state
     | isFinal state = (rand, fromJust (payout state))
     | otherwise     = simulate newRand childState where
-        (childIndex, newRand) = randomR (0, length stateActions) rand
+        (childIndex, newRand) = randomR (0, length stateActions - 1) rand
         childState = apply (stateActions !! childIndex) state
         stateActions = actions state
 
@@ -82,20 +94,12 @@ singletonNode :: Action a => Double -> Node a
 singletonNode payout =
     Node { children = Map.empty, meanPayout = payout, playCount = 1 }
 
--- Looks for an unexpanded action to start simulation from.
--- If it returns Just a, start simulating from (a).
--- If it returns Nothing, continue selecting down using the uct function.
-findUnexpanded :: (Action a, Spec s a) => s -> Node a -> Maybe a
-findUnexpanded s n = find isUnexpanded (actions s) where
-    isUnexpanded a = not $ Map.member a (children n)
-
 -- Finds the best action under UCB1 to continue selection.
--- This function assumes that there are no unexpanded nodes.
+-- This function assumes that there are no unexpanded nodes and no terminal nodes.
 uct :: (Action a, Spec s a) => s -> Node a -> a
-uct s n =
-    fst $ Map.findMax $ Map.fromSet getScore (Set.fromList (actions s)) where
-        getScore a = ucb (children n Map.! a)
-        ucb c = meanPayout c + sqrt 2 * (sqrt (log (playCount n)) / playCount c)
+uct s n = last $ sortOn getScore (actions s) where
+    getScore a = ucb (children n Map.! a)
+    ucb c = meanPayout c + sqrt 2 * (sqrt (log (playCount n)) / playCount c)
 
 -- Update a node with the payout and the updated child node.
 backprop :: Action a => a -> Node a -> Double -> Node a -> Node a
