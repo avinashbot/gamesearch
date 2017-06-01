@@ -2,10 +2,9 @@
 
 module Game.Fishmax.TicTacToe (start, Draw(..)) where
 
-import           Data.Array.IArray       (Array, array, (!), (//))
-import           Data.Maybe              (isJust, isNothing, listToMaybe,
-                                          mapMaybe)
-import           Game.Fishmax.TreeSearch (Action, Spec (..))
+import Data.Array.IArray       (Array, array, (!), (//))
+import Data.Maybe              (isJust, isNothing, listToMaybe, mapMaybe)
+import Game.Fishmax.TreeSearch (Action, Spec (..))
 
 data Player = Max | Min deriving (Eq, Show)
 data Space = Occupied Player | Empty deriving (Eq, Show)
@@ -19,9 +18,6 @@ newtype Draw = Draw (Int, Int) deriving (Eq, Ord, Show)
 instance Action Draw
 
 instance Spec State Draw where
-    -- If the game is over and there's a winner.
-    isFinal s = isJust (winner s) || null (actions s)
-
     -- Returns a payout of 1 if we won, 0 if we lost.
     payout s
         | winner s == Just Max = Just 1.0
@@ -30,12 +26,14 @@ instance Spec State Draw where
         | otherwise = Nothing
 
     -- Returns positions where the columns are not filled up.
-    actions s = map Draw $
-                filter (\a -> (grid s ! a) == Empty)
-                       [(a, b) | a <- [0..2], b <- [0..2]]
+    actions s
+        | isJust (winner s) = []
+        | otherwise = map Draw $
+                      filter (\a -> grid s ! a == Empty)
+                      [(a, b) | a <- [0..2], b <- [0..2]]
 
     -- Applies action a to board b.
-    apply (Draw p) s = s
+    apply (Draw p) s = State
         { grid = grid s // [(p, Occupied (turn s))]
         , turn = if turn s == Max then Min else Max
         }

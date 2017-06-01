@@ -17,16 +17,15 @@ import qualified Data.Map.Strict as Map
 import qualified Data.Set        as Set
 import           System.Random   (RandomGen, randomR)
 
--- A Game Action
-class (Eq a, Ord a, Show a) => Action a
+-- A game action.
+class (Eq a, Ord a) => Action a
 
 -- A game state.
-class (Action a, Show s) => Spec s a | s -> a where
-    -- Returns whether a state is a leaf state.
-    isFinal :: s -> Bool
+class (Action a) => Spec s a | s -> a where
     -- Payout function for the player for the leaf state.
     payout  :: s -> Maybe Double
     -- Returns a list of legal actions for a given state.
+    -- Returns [] if the node is a leaf node.
     actions :: s -> [a]
     -- Returns the result of applying an action to a state.
     apply   :: a -> s -> s
@@ -49,9 +48,9 @@ emptyNode = Node { children = Map.empty, meanPayout = 0, playCount = 0 }
 monteCarlo :: (RandomGen r, Action a, Spec s a) =>
                   r -> s -> Node a -> (Node a, (r, Double))
 monteCarlo rand state node
-    | isFinal state     = (node, (rand, fromJust (payout state)))
-    | isJust unexpanded = selectSim (fromJust unexpanded) rand state node
-    | otherwise         = selectUCT rand state node
+    | null (actions state) = (node, (rand, fromJust (payout state)))
+    | isJust unexpanded    = selectSim (fromJust unexpanded) rand state node
+    | otherwise            = selectUCT rand state node
     where unexpanded = findUnexpanded state node
 
 -- Return a map of payouts for each initial action.
@@ -86,8 +85,9 @@ selectUCT rand state node =
 -- Simulates the game randomly from a starting state.
 simulate :: (RandomGen r, Spec s a) => r -> s -> (r, Double)
 simulate rand state
-    | isFinal state = (rand, fromJust (payout state))
-    | otherwise     = simulate newRand childState where
+    | null (actions state) = (rand, fromJust (payout state))
+    | otherwise            = simulate newRand childState
+    where
         (childIndex, newRand) = randomR (0, length stateActions - 1) rand
         childState = apply (stateActions !! childIndex) state
         stateActions = actions state
@@ -100,9 +100,16 @@ singletonNode payout =
 -- Finds the best action under UCB1 to continue selection.
 -- This function assumes that there are no unexpanded nodes or terminal nodes.
 uct :: (Action a, Spec s a) => s -> Node a -> a
-uct s n = last $ sortOn getScore (actions s) where
+uct s n = fst $ fMax getScore (actions s) where
     getScore a = ucb (children n Map.! a)
     ucb c = meanPayout c + sqrt 2 * (sqrt (log (playCount n)) / playCount c)
+
+-- fMax replaces `sortOn` in uct with a O(n) maximum function.
+fMax :: Ord b => (a -> b) -> [a] -> (a, b)
+fMax _ []  = error "cannot find max of empty list"
+fMax f [x] = (x, f x)
+fMax f (x:ys) = let (val, comp) = fMax f ys in
+                if f x > comp then (x, f x) else (val, comp)
 
 -- Update a node with the payout and the updated child node.
 backprop :: Action a => a -> Node a -> Double -> Node a -> Node a
