@@ -1,6 +1,7 @@
 module Game.Fishmax.TicTacToeSpec (spec) where
 
 import Test.Hspec
+import Game.Fishmax.TicTacToe
 
 spec :: Spec
 spec = do

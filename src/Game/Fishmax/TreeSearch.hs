@@ -1,4 +1,5 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses  #-}
 
 module Game.Fishmax.TreeSearch
     ( Spec(..)
@@ -10,12 +11,11 @@ module Game.Fishmax.TreeSearch
     , payouts
     ) where
 
-import System.Random (RandomGen, randomR)
-import Data.List (find, sortOn)
-import Data.Maybe (fromJust, isJust)
+import           Data.List       (find, sortOn)
+import           Data.Maybe      (fromJust, isJust)
 import qualified Data.Map.Strict as Map
-import qualified Data.Set as Set
-import Debug.Trace (trace)
+import qualified Data.Set        as Set
+import           System.Random   (RandomGen, randomR)
 
 -- A Game Action
 class (Eq a, Ord a, Show a) => Action a
@@ -46,7 +46,8 @@ emptyNode = Node { children = Map.empty, meanPayout = 0, playCount = 0 }
 
 -- Run monte carlo simulation, returning the updated node, the updated
 -- random generator, and the resulting payout of the simulation.
-monteCarlo :: (RandomGen r, Action a, Spec s a) => r -> s -> Node a -> (Node a, (r, Double))
+monteCarlo :: (RandomGen r, Action a, Spec s a) =>
+                  r -> s -> Node a -> (Node a, (r, Double))
 monteCarlo rand state node
     | isFinal state     = (node, (rand, fromJust (payout state)))
     | isJust unexpanded = selectSim (fromJust unexpanded) rand state node
@@ -65,14 +66,16 @@ findUnexpanded s n = find isUnexpanded (actions s) where
     isUnexpanded a = Map.notMember a (children n)
 
 -- Create a new node and simulate from there.
-selectSim :: (RandomGen r, Action a, Spec s a) => a -> r -> s -> Node a -> (Node a, (r, Double))
+selectSim :: (RandomGen r, Action a, Spec s a) =>
+                 a -> r -> s -> Node a -> (Node a, (r, Double))
 selectSim action rand state node =
     (backprop action (singletonNode payout) payout node, (newRand, payout))
     where
         (newRand, payout) = simulate rand (apply action state)
 
 -- Recursively call select on a child of this tree based on UCT.
-selectUCT :: (RandomGen r, Action a, Spec s a) => r -> s -> Node a -> (Node a, (r, Double))
+selectUCT :: (RandomGen r, Action a, Spec s a) =>
+                 r -> s -> Node a -> (Node a, (r, Double))
 selectUCT rand state node =
     (backprop action child payout node, (newRand, payout))
     where
@@ -95,7 +98,7 @@ singletonNode payout =
     Node { children = Map.empty, meanPayout = payout, playCount = 1 }
 
 -- Finds the best action under UCB1 to continue selection.
--- This function assumes that there are no unexpanded nodes and no terminal nodes.
+-- This function assumes that there are no unexpanded nodes or terminal nodes.
 uct :: (Action a, Spec s a) => s -> Node a -> a
 uct s n = last $ sortOn getScore (actions s) where
     getScore a = ucb (children n Map.! a)

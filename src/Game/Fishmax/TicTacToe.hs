@@ -2,10 +2,10 @@
 
 module Game.Fishmax.TicTacToe (start, Draw(..)) where
 
-import Data.Array.IArray (Array, array, (!), (//))
-import Data.Maybe (mapMaybe, listToMaybe, isJust, isNothing)
-import Game.Fishmax.TreeSearch (Spec(..), Action)
-import Debug.Trace (trace)
+import           Data.Array.IArray       (Array, array, (!), (//))
+import           Data.Maybe              (isJust, isNothing, listToMaybe,
+                                          mapMaybe)
+import           Game.Fishmax.TreeSearch (Action, Spec (..))
 
 data Player = Max | Min deriving (Eq, Show)
 data Space = Occupied Player | Empty deriving (Eq, Show)
@@ -49,20 +49,20 @@ start = State
 winner :: State -> Maybe Player
 winner state = listToMaybe $ mapMaybe (isLine (grid state)) checkMatrix
 
-checkMatrix :: [((Int, Int), (Int, Int), (Int, Int))]
+checkMatrix :: [[(Int, Int)]]
 checkMatrix =
-    [ ((0, 0), (0, 1), (0, 2))
-    , ((1, 0), (1, 1), (1, 2))
-    , ((2, 0), (2, 1), (2, 2))
-    , ((0, 0), (1, 0), (2, 0))
-    , ((0, 1), (1, 1), (2, 1))
-    , ((0, 2), (1, 2), (2, 2))
-    , ((0, 0), (1, 1), (2, 2))
-    , ((0, 2), (1, 1), (2, 0))
+    [ [(0, 0), (0, 1), (0, 2)]
+    , [(1, 0), (1, 1), (1, 2)]
+    , [(2, 0), (2, 1), (2, 2)]
+    , [(0, 0), (1, 0), (2, 0)]
+    , [(0, 1), (1, 1), (2, 1)]
+    , [(0, 2), (1, 2), (2, 2)]
+    , [(0, 0), (1, 1), (2, 2)]
+    , [(0, 2), (1, 1), (2, 0)]
     ]
 
-isLine :: Array (Int, Int) Space -> ((Int, Int), (Int, Int), (Int, Int)) -> Maybe Player
-isLine arr (a, b, c)
-    | (arr ! a == arr ! b) && (arr ! b == arr ! c) && (arr ! c == Occupied Min) = Just Min
-    | (arr ! a == arr ! b) && (arr ! b == arr ! c) && (arr ! c == Occupied Max) = Just Max
+isLine :: Array (Int, Int) Space -> [(Int, Int)] -> Maybe Player
+isLine arr check
+    | all (== Occupied Min) $ map (arr !) check = Just Min
+    | all (== Occupied Max) $ map (arr !) check = Just Max
     | otherwise = Nothing
