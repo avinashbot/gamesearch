@@ -9,6 +9,7 @@ module Game.Fishmax.TreeSearch
     , emptyNode
     , monteCarlo
     , payouts
+    , best
     ) where
 
 import           Data.List       (find, sortOn)
@@ -22,11 +23,11 @@ class (Eq a, Ord a) => Action a
 
 -- A game state.
 class (Action a) => Spec s a | s -> a where
-    -- Payout function for the player for the leaf state.
-    payout  :: s -> Maybe Double
     -- Returns a list of legal actions for a given state.
     -- Returns [] if the node is a leaf node.
     actions :: s -> [a]
+    -- Payout function for the player for the leaf state.
+    payout  :: s -> Maybe Double
     -- Returns the result of applying an action to a state.
     apply   :: a -> s -> s
 
@@ -56,6 +57,10 @@ monteCarlo rand state node
 -- Return a map of payouts for each initial action.
 payouts :: Action a => Node a -> Map.Map a Double
 payouts node = Map.map meanPayout (children node)
+
+-- Straight up returns the best action.
+best :: Action a => Node a -> (a, Double)
+best node = fst $ fMax snd (Map.toList (payouts node))
 
 -- Looks for an unexpanded action to start simulation from.
 -- If it returns Just a, start simulating from (a).

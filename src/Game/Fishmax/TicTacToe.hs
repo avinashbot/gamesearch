@@ -18,19 +18,19 @@ newtype Draw = Draw (Int, Int) deriving (Eq, Ord, Show)
 instance Action Draw
 
 instance Spec State Draw where
-    -- Returns a payout of 1 if we won, 0 if we lost.
-    payout s
-        | winner s == Just Max = Just 1.0
-        | winner s == Just Min = Just (-1.0)
-        | isNothing (winner s) && null (actions s) = Just 0.0
-        | otherwise = Nothing
-
     -- Returns positions where the columns are not filled up.
     actions s
         | isJust (winner s) = []
         | otherwise = map Draw $
                       filter (\a -> grid s ! a == Empty)
                       [(a, b) | a <- [0..2], b <- [0..2]]
+
+    -- Returns a payout of 1 if we won, 0 if we lost.
+    payout s
+        | winner s == Just Max = Just 1.0
+        | winner s == Just Min = Just (-1.0)
+        | isNothing (winner s) && null (actions s) = Just 0.0
+        | otherwise = Nothing
 
     -- Applies action a to board b.
     apply (Draw p) s = State

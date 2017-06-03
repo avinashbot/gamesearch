@@ -3,9 +3,9 @@ module Game.Fishmax.Model
     , Player(..)
     ) where
 
-import qualified Data.Set as Set
-import qualified Data.Map.Strict as Map
-import Game.Fishmax.TreeSearch (Spec(..))
+import qualified Data.Map.Strict         as Map
+import qualified Data.Set                as Set
+import           Game.Fishmax.TreeSearch (Spec (..))
 
 -- A Card can just be one of 12 cards, but using a string lets us adapt to
 -- custom decks.
@@ -21,13 +21,14 @@ data Player = Player
 
 -- A game state
 data State = State
-   { suits :: Set.Set Card
-   , selfTurn :: Int
-   , players :: [Player]
-   , turn :: Int
-   }
+    { suits    :: Set.Set Card
+    , selfTurn :: Int
+    , players  :: [Player]
+    , turn     :: Int
+    }
 
 data Ask = Ask Int Card deriving (Eq, Ord)
+
 
 --
 -- Internal Methods
@@ -61,7 +62,6 @@ declareInclusion card player =
                          }
 
 -- Ensure we are tracking that the player does not have any of these cards.
--- TODO: assert that the card is not in the inclusion set?
 declareExclusion :: Card -> Player -> Player
 declareExclusion card player =
     player { excluded  = Set.insert card (excluded player)
@@ -129,29 +129,18 @@ reduceKnown p s = foldl (\m x -> Map.unionWith (-) m (minCounts x)) s p
 
 -- Returns a histogram of UNKNOWN cards that the player may have in their hand
 -- based on the player's and their opponents' known cards.
-possibleUnknownCards :: Int -> [Card] -> Player -> [Player]
+possibleUnknowns :: Int -> [Card] -> Player -> [Player]
                         -> Map.Map Card Int
-possibleUnknownCards count cards self players =
+possibleUnknowns count cards self players =
     zeroExcluded self $
     zeroCompleted players $
     reduceCompletable count $
     reduceKnown players $
     Map.fromList [(c, count) | c <- cards]
 
--- Returns a set of cards that the player could ask for.
-possibleHeldCards :: Int -> [Card] -> Player -> [Player] -> [Card]
-possibleHeldCards count cards self players =
-    Map.keys $ Map.unionWith (+) known unknown where
-        known = minCounts self
-        unknown = possibleUnknownCards count cards self players
-
--- Returns the number of cards in the player's hand we know about
-knownCardCount :: Player -> Int
-knownCardCount player = sum $ minCounts player
-
 -- Returns the number of cards that we don't know in the player's hand.
 unknownCardCount :: Player -> Int
-unknownCardCount player = handSize player - knownCardCount player
+unknownCardCount player = handSize player - sum (minCounts player)
 
 -- Gets the number of remaining players.
 remainingPlayers :: [Player] -> Int

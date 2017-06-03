@@ -10,33 +10,48 @@ license:             BSD3
 license-file:        LICENSE
 author:              Avinash Dwarapu
 maintainer:          avinash@dwarapu.me
--- copyright:
+copyright:           2017 Avinash Dwarapu
 category:            Game
 build-type:          Simple
 extra-source-files:  README.md
 cabal-version:       >=1.10
 
+executable fishmax
+  hs-source-dirs:   app
+  main-is:          Main.hs
+  ghc-options:      -threaded -rtsopts -with-rtsopts=-N
+  default-language: Haskell2010
+  build-depends:
+      base
+    , fishmax
+    , random >= 1.1 && < 1.2
+
 library
-  exposed-modules:  Game.Fishmax, Game.Fishmax.TicTacToe
+  exposed-modules:  Game.Fishmax, Game.Fishmax.TicTacToe, Game.Fishmax.ConnectFour
   other-modules:    Game.Fishmax.TreeSearch
   other-extensions: MultiParamTypeClasses, FunctionalDependencies
   hs-source-dirs:   src
   default-language: Haskell2010
   build-depends:
-      base >=4.9 && <4.10
-    , containers >=0.5 && <0.6
-    , random >=1.1 && <1.2
-    , array >=0.5 && <0.6
+      base       >= 4.4 && < 5
+    , containers >= 0.5 && < 0.6
+    , random     >= 1.1 && < 1.2
+    , array      >= 0.5 && < 0.6
 
 test-suite spec
   hs-source-dirs: test
   main-is: Spec.hs
   Type: exitcode-stdio-1.0
   build-depends:
-      base >=4.7 && <5
-    , hspec >=2.4 && <2.5
-    , random >=1.1 && <1.2
+      base   >= 4.7 && < 5
+    , hspec  >= 2.4 && < 2.5
+    , random >= 1.1 && < 1.2
     , fishmax
   other-modules:
       Game.FishmaxSpec
       Game.Fishmax.TicTacToeSpec
+      Game.Fishmax.ConnectFourSpec
+
+source-repository head
+  type:     git
+  location: https://github.com/avinashbot/fishmax
