@@ -15,10 +15,11 @@ continue state = do
     rand <- getStdGen
     let action = fst (best (fst (runMCTS rand state 5e5))) :: Drop
     let computerMove = apply action state
+    putStrLn ("Computer Chose: " ++ show action)
     if   isJust (winner computerMove)
     then putStrLn "Computer Wins"
     else do
-         putStr ("Computer Chose: " ++ show action ++ "\nPlayer Move (0-6): ")
+         putStr "Player Move (0-6): "
          hFlush stdout
          uinput <- getLine
          let playerMove = apply (Drop (read uinput)) computerMove

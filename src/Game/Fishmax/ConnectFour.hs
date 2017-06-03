@@ -38,8 +38,9 @@ instance Spec State Drop where
         , turn   = if turn s == Max then Min else Max
         , winner = if winningTurn then Just (turn s) else Nothing
         } where
-            newGrd = grid s // [((droppedRow (grid s) c, c), Occupied (turn s))]
-            winningTurn = isWinner newGrd (turn s)
+            newPos = (droppedRow (grid s) c, c)
+            newGrd = grid s // [(newPos, Occupied (turn s))]
+            winningTurn = isWinner newGrd newPos (turn s)
 
 -- Return the starting state.
 start :: State
@@ -63,37 +64,37 @@ payoutOf Nothing    = -1.0
 droppedRow :: Array (Int, Int) Space -> Int -> Int
 droppedRow grid col =
     if isJust firstDropped then fromJust firstDropped - 1 else 5
-    where
-        firstDropped = find (\row -> (grid ! (row, col)) /= Empty) [0..5]
+    where firstDropped = find (\row -> (grid ! (row, col)) /= Empty) [0..5]
 
--- Check around a position for a connect 4.
-isWinner :: Array (Int, Int) Space -> Player -> Bool
-isWinner g p = horzWin g p || vertWin g p || descDiagWin g p || ascDiagWin g p
+-- An O(1) win check for connect 4 around a piece that is independent of board
+-- size.
+isWinner :: Array (Int, Int) Space -> (Int, Int) -> Player -> Bool
+isWinner grid (r, c) player =
+    any (all (\ (i, j) -> (grid `safe` (r + i, c + j)) == Occupied player))
+        [ [(0, 0),  (0, 1),  (0, 2),  (0, 3)]
+        , [(0, -1), (0, 0),  (0, 1),  (0, 2)]
+        , [(0, -2), (0, -1), (0, 0),  (0, 1)]
+        , [(0, -3), (0, -2), (0, -1), (0, 0)]
 
--- Check for a horizontal line.
-horzWin :: Array (Int, Int) Space -> Player -> Bool
-horzWin g p = any check (range (minBounds, (maxRow, maxCol - 3))) where
-    (minBounds, (maxRow, maxCol)) = bounds g
-    check (r, c) = all (\i -> (g ! i) == Occupied p)
-                       [(r, c), (r, c+1), (r, c+2), (r, c+3)]
+        , [(0, 0),  (1, 0),  (2, 0),  (3, 0)]
+        , [(-1, 0), (0, 0),  (1, 0),  (2, 0)]
+        , [(-2, 0), (-1, 0), (0, 0),  (1, 0)]
+        , [(-3, 0), (-2, 0), (-1, 0), (0, 0)]
 
--- Check for a vertical line.
-vertWin :: Array (Int, Int) Space -> Player -> Bool
-vertWin g p = any check (range (minBounds, (maxRow - 3, maxCol))) where
-    (minBounds, (maxRow, maxCol)) = bounds g
-    check (r, c) = all (\i -> (g ! i) == Occupied p)
-                       [(r, c), (r+1, c), (r+2, c), (r+3, c)]
+        , [(0, 0),   (1, 1),   (2, 2),   (3, 3)]
+        , [(-1, -1), (0, 0),   (1, 1),   (2, 2)]
+        , [(-2, -2), (-1, -1), (0, 0),   (1, 1)]
+        , [(-3, -3), (-2, -2), (-1, -1), (0, 0)]
 
--- Check for a descending diagonal line.
-descDiagWin :: Array (Int, Int) Space -> Player -> Bool
-descDiagWin g p = any check (range (minBounds, (maxRow - 3, maxCol - 3))) where
-    (minBounds, (maxRow, maxCol)) = bounds g
-    check (r, c) = all (\i -> (g ! i) == Occupied p)
-                       [(r, c), (r+1, c+1), (r+2, c+2), (r+3, c+3)]
+        , [(0, 0),  (-1, 1), (-2, 2), (-3, 3)]
+        , [(1, -1), (0, 0),  (-1, 1), (-2, 2)]
+        , [(2, -2), (1, -1), (0, 0),  (-1, 1)]
+        , [(3, -3), (2, -2), (1, -1), (0, 0)]
+        ]
 
--- Check for an ascending diagonal line.
-ascDiagWin :: Array (Int, Int) Space -> Player -> Bool
-ascDiagWin g p = any check (range ((minRow + 3, minCol), (maxRow, maxCol - 3))) where
-    ((minRow, minCol), (maxRow, maxCol)) = bounds g
-    check (r, c) = all (\i -> (g ! i) == Occupied p)
-                       [(r, c), (r-1, c+1), (r-2, c+2), (r-3, c+3)]
+-- Safe array lookup
+safe :: Array (Int, Int) Space -> (Int, Int) -> Space
+safe arr (row, col)
+    | row < minRow || row > maxRow || col < minCol || col > maxRow = Empty
+    | otherwise = arr ! (row, col)
+    where ((minRow, minCol), (maxRow, maxCol)) = bounds arr
