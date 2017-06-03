@@ -50,7 +50,6 @@ test-suite spec
   other-modules:
       Game.FishmaxSpec
       Game.Fishmax.TicTacToeSpec
-      Game.Fishmax.ConnectFourSpec
 
 source-repository head
   type:     git

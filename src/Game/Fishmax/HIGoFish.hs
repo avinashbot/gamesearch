@@ -1,4 +1,4 @@
-module Game.Fishmax.Model
+module Game.Fishmax.HIGoFish
     ( Card(..)
     , Player(..)
     ) where
