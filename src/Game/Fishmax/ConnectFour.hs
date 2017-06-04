@@ -9,7 +9,7 @@ import Data.Array.IArray       (Array, array, bounds, (!), (//))
 import Game.Fishmax.TreeSearch (Spec(..), Action)
 
 data Player = Max | Min deriving (Eq, Show)
-data Space = Occupied Player | Empty deriving (Eq, Show)
+data Space = Occupied Player | Empty | Null deriving (Eq, Show)
 
 data State = State
     { grid :: Array (Int, Int) Space
@@ -34,13 +34,13 @@ instance Spec State Drop where
     -- Applies action a to board b.
     apply (Drop c) s =
         State
-        { grid   = newGrd
+        { grid   = newGrid
         , turn   = if turn s == Max then Min else Max
-        , winner = if winningTurn then Just (turn s) else Nothing
+        , winner = if winningMove then Just (turn s) else Nothing
         } where
-            newPos = (droppedRow (grid s) c, c)
-            newGrd = grid s // [(newPos, Occupied (turn s))]
-            winningTurn = isWinner newGrd newPos (turn s)
+            dropPos     = (droppedRow (grid s) c, c)
+            newGrid     = grid s // [(dropPos, Occupied (turn s))]
+            winningMove = isWinningMove newGrid dropPos (turn s)
 
 -- Return the starting state.
 start :: State
@@ -54,23 +54,24 @@ start = State
 availDrops :: Array (Int, Int) Space -> [Drop]
 availDrops grid = map Drop $ filter (\col -> (grid ! (0, col)) == Empty) [0..6]
 
--- Returns the playout of a possible winner, assuming a tie as a loss.
+-- Returns the playout of a possible winner.
 payoutOf :: Maybe Player -> Double
 payoutOf (Just Max) = 1.0
 payoutOf (Just Min) = -1.0
-payoutOf Nothing    = -1.0
+payoutOf Nothing    = 0.0
 
 -- Get the row that the piece settles in if we drop it at that column.
 droppedRow :: Array (Int, Int) Space -> Int -> Int
 droppedRow grid col =
     if isJust firstDropped then fromJust firstDropped - 1 else 5
-    where firstDropped = find (\row -> (grid ! (row, col)) /= Empty) [0..5]
+    where
+        firstDropped = find (\row -> (grid ! (row, col)) /= Empty) [0..5]
 
 -- An O(1) win check for connect 4 around a piece that is independent of board
 -- size.
-isWinner :: Array (Int, Int) Space -> (Int, Int) -> Player -> Bool
-isWinner grid (r, c) player =
-    any (all (\ (i, j) -> (grid `safe` (r + i, c + j)) == Occupied player))
+isWinningMove :: Array (Int, Int) Space -> (Int, Int) -> Player -> Bool
+isWinningMove grid (r, c) player =
+    any (all (\(i, j) -> (grid `safe` (r + i, c + j)) == Occupied player))
         [ [(0, 0),  (0, 1),  (0, 2),  (0, 3)]
         , [(0, -1), (0, 0),  (0, 1),  (0, 2)]
         , [(0, -2), (0, -1), (0, 0),  (0, 1)]
@@ -95,6 +96,6 @@ isWinner grid (r, c) player =
 -- Safe array lookup
 safe :: Array (Int, Int) Space -> (Int, Int) -> Space
 safe arr (row, col)
-    | row < minRow || row > maxRow || col < minCol || col > maxRow = Empty
+    | row < minRow || row > maxRow || col < minCol || col > maxRow = Null
     | otherwise = arr ! (row, col)
     where ((minRow, minCol), (maxRow, maxCol)) = bounds arr
