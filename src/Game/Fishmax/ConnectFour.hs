@@ -2,18 +2,18 @@
 
 module Game.Fishmax.ConnectFour (start, State(..), Drop(..)) where
 
-import Data.List               (find)
-import Data.Maybe              (isJust, fromJust)
-import Data.Ix                 (range)
-import Data.Array.IArray       (Array, array, bounds, (!), (//))
-import Game.Fishmax.TreeSearch (Spec(..), Action)
+import           Data.Array.IArray       (Array, array, bounds, (!), (//))
+import           Data.Ix                 (range)
+import           Data.List               (find)
+import           Data.Maybe              (fromJust, isJust)
+import           Game.Fishmax.TreeSearch (Action, Spec (..))
 
 data Player = Max | Min deriving (Eq, Show)
 data Space = Occupied Player | Empty | Null deriving (Eq, Show)
 
 data State = State
-    { grid :: Array (Int, Int) Space
-    , turn :: Player
+    { grid   :: Array (Int, Int) Space
+    , turn   :: Player
     , winner :: Maybe Player
     } deriving (Show)
 

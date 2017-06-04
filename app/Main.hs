@@ -1,12 +1,12 @@
 module Main (main) where
 
-import Control.Monad
-import System.CPUTime           (getCPUTime)
-import System.IO                (hFlush, stdout)
-import System.Random            (getStdGen)
-import Data.Maybe               (isJust, fromJust)
-import Game.Fishmax             (timedMCTS, emptyNode, bestAction, apply)
-import Game.Fishmax.ConnectFour (State, Drop(..), start, winner)
+import           Data.Maybe               (fromJust, isJust)
+import           Game.Fishmax             (apply, bestAction, emptyNode,
+                                           timedMCTS)
+import           Game.Fishmax.ConnectFour (Drop (..), State, start, winner)
+import           System.CPUTime           (getCPUTime)
+import           System.IO                (hFlush, stdout)
+import           System.Random            (getStdGen)
 
 main :: IO ()
 main = continue start
@@ -26,13 +26,13 @@ continue state = do
     if   isJust (winner computerState)
     then putStrLn "Computer Wins"
     else do
-         -- Ask player for their move.
-         putStr "Player Move (0-6): "
-         hFlush stdout
-         uinput <- getLine
+        -- Ask player for their move.
+        putStr "Player Move (0-6): "
+        hFlush stdout
+        uinput <- getLine
 
-         -- Check if it's a winning move, else go back.
-         let playerState = apply (Drop (read uinput)) computerState
-         if   isJust (winner playerState)
-         then putStrLn "Player Wins"
-         else continue playerState
+        -- Check if it's a winning move, else go back.
+        let playerState = apply (Drop (read uinput)) computerState
+        if   isJust (winner playerState)
+        then putStrLn "Player Wins"
+        else continue playerState

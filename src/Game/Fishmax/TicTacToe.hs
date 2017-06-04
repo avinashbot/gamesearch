@@ -2,9 +2,10 @@
 
 module Game.Fishmax.TicTacToe (start, Draw(..)) where
 
-import Data.Array.IArray       (Array, array, (!), (//))
-import Data.Maybe              (isJust, isNothing, listToMaybe, mapMaybe)
-import Game.Fishmax.TreeSearch (Action, Spec (..))
+import           Data.Array.IArray       (Array, array, (!), (//))
+import           Data.Maybe              (isJust, isNothing, listToMaybe,
+                                          mapMaybe)
+import           Game.Fishmax.TreeSearch (Action, Spec (..))
 
 data Player = Max | Min deriving (Eq, Show)
 data Space = Occupied Player | Empty deriving (Eq, Show)
