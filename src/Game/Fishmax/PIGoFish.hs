@@ -33,7 +33,7 @@ data State = State
 instance Spec State Ask where
     -- Returns cards and players they can ask.
     actions s
-        | any (\p -> sum (cardCount p) > 0) (players s) = []
+        | all (\p -> sum (cardCount p) == 0) (players s) = []
         | otherwise = possibleAsks s
 
     -- Returns the number of books we put down.
@@ -52,7 +52,7 @@ possibleAsks :: State -> [Ask]
 possibleAsks s = [Ask i c | i <- [0..maxIndex], c <- uniqCards]
     where
         (_, maxIndex) = bounds (players s)
-        player = players s ! selfTurn s
+        player = players s ! turn s
         uniqCards = Map.keys $ Map.filter (> 0) (cardCount player)
 
 -- Update books
@@ -65,8 +65,8 @@ updateBooks p = p
 
 -- Give the player certain number of a given card.
 receiveCards :: Int -> Card -> Player -> Player
-receiveCards count card player = updateBooks player
-    { cardCount = Map.insert card (current + count) (cardCount player) }
+receiveCards count card player = updateBooks
+    (player { cardCount = Map.insert card (current + count) (cardCount player) })
     where
         current = Map.findWithDefault 0 card (cardCount player)
 
