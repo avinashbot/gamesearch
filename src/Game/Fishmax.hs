@@ -2,12 +2,22 @@
 
 module Game.Fishmax
   ( module Game.Fishmax.TreeSearch
+  , repeatMCTS
   , timedMCTS
   ) where
 
 import Game.Fishmax.TreeSearch
 import System.CPUTime (getCPUTime)
 import System.Random (RandomGen)
+
+-- Run MCTS a certain number of times.
+repeatMCTS ::
+     (RandomGen r, Spec s a) => Integer -> r -> s -> Node a -> (Node a, r)
+repeatMCTS 0 r _ n = (n, r)
+repeatMCTS 1 r s n = (nn, nr) where (nn, (nr, _)) = monteCarlo r s n
+repeatMCTS i r s n = (nnn, nnr) where
+  (nnn, (nnr, _)) = monteCarlo nr s nn
+  (nn, nr)        = repeatMCTS (i-1) r s n
 
 -- Run monte carlo search for a given number of seconds.
 timedMCTS ::
