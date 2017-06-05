@@ -10,24 +10,22 @@ import           System.Random          (getStdGen)
 main :: IO ()
 main = continue start
 
--- FIXME: Fix Tie Check
 continue :: State -> IO ()
 continue state = do
-    -- Run MCTS for 5 seconds.
+    -- Run MCTS for 2 seconds.
     rand      <- getStdGen
-    finalNode <- timedMCTS 5 rand state emptyNode
+    finalNode <- timedMCTS 2 rand state emptyNode
 
-    -- Pick the move with the best outcome.
-    let computerAction = fst (bestAction finalNode)
-    let computerState = apply computerAction state
-
-    -- Put computer move and leave if it's a winning move.
-    putStrLn ("Computer Chose: " ++ show computerAction)
-    if   isJust (winner computerState)
-    then putStrLn "Computer Wins"
-    else
-        if null (actions computerState)
-        then putStrLn "It's a Tie!"
+    -- Check for an inevitable tie.
+    if   length (actions state) == 1
+    then putStrLn "It's a Tie!"
+    else do
+        -- Pick the move with the best outcome.
+        let computerAction = fst (bestAction finalNode)
+        let computerState = apply computerAction state
+        putStrLn ("Computer Chose: " ++ show computerAction)
+        if   isJust (winner computerState)
+        then putStrLn "Computer Wins"
         else do
             -- Ask player for their move.
             putStr "Player Move '(X, Y)': "
