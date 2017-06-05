@@ -16,9 +16,19 @@ build-type:          Simple
 extra-source-files:  README.md
 cabal-version:       >=1.10
 
-executable fishmax
+executable connectfour
   hs-source-dirs:   app
-  main-is:          Main.hs
+  main-is:          ConnectFour.hs
+  ghc-options:      -threaded -rtsopts -with-rtsopts=-N
+  default-language: Haskell2010
+  build-depends:
+      base
+    , fishmax
+    , random >= 1.1 && < 1.2
+
+executable tictactoe
+  hs-source-dirs:   app
+  main-is:          TicTacToe.hs
   ghc-options:      -threaded -rtsopts -with-rtsopts=-N
   default-language: Haskell2010
   build-depends:

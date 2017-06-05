@@ -1,6 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module Game.Fishmax.TicTacToe (start, Draw(..)) where
+module Game.Fishmax.TicTacToe (start, Draw(..), State, winner) where
 
 import           Data.Array.IArray       (Array, array, (!), (//))
 import           Data.Maybe              (isJust, isNothing, listToMaybe,
@@ -42,7 +42,7 @@ instance Spec State Draw where
 start :: State
 start = State
     { grid = array ((0, 0), (2, 2)) [((a, b), Empty) | a <- [0..2], b <- [0..2]]
-    , turn = Min
+    , turn = Max
     }
 
 winner :: State -> Maybe Player
