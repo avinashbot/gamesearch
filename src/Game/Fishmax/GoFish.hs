@@ -94,10 +94,9 @@ data Game = Game
 
 -- | Returns a histogram of publicly known cards.
 knownCards :: Game -> Map.Map Card Int -> Map.Map Card Int
-knownCards game accum = Map.unionWith (-) accum known
-  where
-    known =
-        foldl (\s p -> Map.unionWith (+) s (cards p)) Map.empty (players game)
+knownCards game accum =
+    Map.unionWith (-) accum $
+    foldl (\s p -> Map.unionWith (+) s (cards p)) Map.empty (players game)
 
 -- | Remove all keys from a map that are part of the player's exclusion set.
 filterExcluded :: Player -> Map.Map Card Int -> Map.Map Card Int
@@ -112,9 +111,7 @@ adjustCompletable game player unknowns =
              if cardCount card player + unknownCount == bookSize game
                  then unknownCount - 1
                  else unknownCount)
-        validUnknowns
-  where
-    validUnknowns = Map.filter (> 0) unknowns
+        (Map.filter (> 0) unknowns)
 
 -- | Returns a histogram of possible unknown cards for the player.
 possibleCards :: Game -> Player -> Map.Map Card Int
@@ -123,3 +120,6 @@ possibleCards game player =
     filterExcluded player $
     knownCards game $
     Map.fromList [(c, bookSize game) | c <- cardTypes game]
+
+-- | Signifies the current player asking for a card from another player.
+data Action = Action Card Int deriving (Eq, Ord)

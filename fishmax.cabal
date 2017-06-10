@@ -37,8 +37,8 @@ executable tictactoe
     , random >= 1.1 && < 1.2
 
 library
-  exposed-modules:  Game.Fishmax, Game.Fishmax.TicTacToe, Game.Fishmax.ConnectFour
-  other-modules:    Game.Fishmax.TreeSearch
+  exposed-modules:  Game.Fishmax, Game.Fishmax.ConnectFour, Game.GameSearch.TicTacToe, Game.GameSearch
+  other-modules:    Game.Fishmax.TreeSearch, Game.GameSearch.TreeSearch
   other-extensions: MultiParamTypeClasses, FunctionalDependencies, BangPatterns
   hs-source-dirs:   src
   default-language: Haskell2010
@@ -47,6 +47,7 @@ library
     , containers >= 0.5 && < 0.6
     , random     >= 1.1 && < 1.2
     , array      >= 0.5 && < 0.6
+    , random-fu  >= 0.2.7 && < 0.2.8
 
 test-suite spec
   hs-source-dirs: test

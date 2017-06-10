@@ -50,7 +50,7 @@ payouts node = Map.map meanPayout (children node)
 
 -- Straight up returns the best action and associated payout.
 bestAction :: Action a => Node a -> (a, Double)
-bestAction node = fst $ fMax snd (Map.toList (payouts node))
+bestAction node = fMax snd (Map.toList (payouts node))
 
 -- Run monte carlo simulation, returning the updated node, the updated
 -- random generator, and the resulting payout of the simulation.
@@ -105,16 +105,17 @@ simulate rand state
 -- Finds the best action under UCB1 to continue selection.
 -- This function assumes that there are no unexpanded nodes or terminal nodes.
 uct :: (Action a, Spec s a) => s -> Node a -> a
-uct s n = fst $ fMax getScore (actions s) where
+uct s n = fMax getScore (actions s) where
     getScore a = ucb (children n Map.! a)
     ucb c = meanPayout c + sqrt 2 * (sqrt (log (playCount n)) / playCount c)
 
 -- fMax replaces `sortOn` in uct with a O(n) maximum function.
-fMax :: Ord b => (a -> b) -> [a] -> (a, b)
-fMax _ []  = error "cannot find max of empty list"
-fMax f [x] = (x, f x)
-fMax f (x:ys) = let (val, comp) = fMax f ys in
-                if f x > comp then (x, f x) else (val, comp)
+fMax :: Ord b => (a -> b) -> [a] -> a
+fMax f a = fst (fMax' f a) where
+    fMax' _ []  = error "cannot find max of empty list"
+    fMax' f [x] = (x, f x)
+    fMax' f (x:ys) = let (val, comp) = fMax' f ys in
+                     if f x > comp then (x, f x) else (val, comp)
 
 -- Update a node with the payout and the updated child node.
 backprop :: Action a => a -> Node a -> Double -> Node a -> Node a

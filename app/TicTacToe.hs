@@ -1,9 +1,9 @@
 module Main (main) where
 
 import           Data.Maybe             (fromJust, isJust)
-import           Game.Fishmax           (actions, apply, bestAction, emptyNode,
+import           Game.GameSearch           (Spec (..), bestAction, empty,
                                          timedMCTS)
-import           Game.Fishmax.TicTacToe (Draw (..), State, start, winner)
+import           Game.GameSearch.TicTacToe (Draw (..), State(..), Player, start, winner)
 import           System.IO              (hFlush, stdout)
 import           System.Random          (getStdGen)
 
@@ -14,14 +14,14 @@ continue :: State -> IO ()
 continue state = do
     -- Run MCTS for 2 seconds.
     rand      <- getStdGen
-    finalNode <- timedMCTS 2 rand state emptyNode
+    finalNode <- timedMCTS 2 rand state empty
 
     -- Check for an inevitable tie.
     if   length (actions state) == 1
     then putStrLn "It's a Tie!"
     else do
         -- Pick the move with the best outcome.
-        let computerAction = fst (bestAction finalNode)
+        let computerAction = bestAction finalNode state
         let computerState = apply computerAction state
         putStrLn ("Computer Chose: " ++ show computerAction)
         if   isJust (winner computerState)
