@@ -1,9 +1,9 @@
 module Main (main) where
 
 import           Data.Maybe               (fromJust, isJust)
-import           Game.Fishmax             (apply, bestAction, emptyNode,
+import           Game.GameSearch             (apply, bestAction, empty,
                                            timedMCTS)
-import           Game.Fishmax.ConnectFour (Drop (..), State, start, winner)
+import           Game.GameSearch.ConnectFour (Drop (..), State, start, winner)
 import           System.CPUTime           (getCPUTime)
 import           System.IO                (hFlush, stdout)
 import           System.Random            (getStdGen)
@@ -15,14 +15,15 @@ continue :: State -> IO ()
 continue state = do
     -- Run MCTS for 5 seconds.
     rand      <- getStdGen
-    finalNode <- timedMCTS 5 rand state emptyNode
+    finalNode <- timedMCTS 5 rand state empty
 
     -- Pick the move with the best outcome.
-    let computerAction = fst (bestAction finalNode)
+    let computerAction = bestAction finalNode state
     let computerState = apply computerAction state
 
     -- Put computer move and leave if it's a winning move.
     putStrLn ("Computer Chose: " ++ show computerAction)
+    print computerState
     if   isJust (winner computerState)
     then putStrLn "Computer Wins"
     else do

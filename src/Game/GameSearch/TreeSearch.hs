@@ -6,6 +6,7 @@ module Game.GameSearch.TreeSearch
     , Node
 
     , empty
+    , child
     , bestAction
     , monteCarlo
     ) where
@@ -39,6 +40,11 @@ empty = Node
     , playCount   = 0.0
     }
 
+-- Select a child node from a parent node.
+child :: (Ord a, Ord p) => a -> Node a p -> Maybe (Node a p)
+child action node = Map.lookup action (children node)
+
+-- Returns the best action from a given node and state.
 bestAction :: Spec s a p => Node a p -> s -> a
 bestAction node state =
     fst . fMax snd . Map.toList $
