@@ -2,7 +2,8 @@ module Main (main) where
 
 import Control.Monad               ((<=<))
 import Data.Maybe                  (isJust, fromJust)
-import Game.GameSearch             (Node, apply, bestAction, empty, timedMCTS, child)
+import Game.GameSearch             (Node, apply, bestAction, empty, timedMCTS,
+                                    child)
 import Game.GameSearch.ConnectFour (State, Drop (..), Player, start, winner)
 import System.IO                   (hFlush, stdout)
 import System.Random               (getStdGen)

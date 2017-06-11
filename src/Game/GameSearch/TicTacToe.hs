@@ -2,10 +2,9 @@
 
 module Game.GameSearch.TicTacToe (start, Draw(..), State, Player, winner) where
 
-import           Data.Array.IArray       (Array, array, (!), (//))
-import           Data.Maybe              (isJust, isNothing, listToMaybe,
-                                          mapMaybe)
-import           Game.GameSearch.TreeSearch (Spec (..))
+import Data.Array.IArray          (Array, array, (!), (//))
+import Data.Maybe                 (isJust, isNothing, listToMaybe, mapMaybe)
+import Game.GameSearch.TreeSearch (Spec (..))
 
 data Player = Max | Min deriving (Eq, Ord, Show)
 data Space = Occupied Player | Empty deriving (Eq, Show)

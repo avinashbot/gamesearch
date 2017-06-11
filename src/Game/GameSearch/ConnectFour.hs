@@ -2,11 +2,11 @@
 
 module Game.GameSearch.ConnectFour (start, State(..), Drop(..), Player(..)) where
 
-import           Data.Array.IArray       (Array, array, bounds, (!), (//))
-import           Data.Ix                 (range)
-import           Data.List               (intersperse, find)
-import           Data.Maybe              (fromJust, isJust)
-import           Game.GameSearch (Spec (..))
+import Data.Array.IArray (Array, array, bounds, (!), (//))
+import Data.Ix           (range)
+import Data.List         (find)
+import Data.Maybe        (fromJust, isJust)
+import Game.GameSearch   (Spec (..))
 
 data Player  = Max | Min deriving (Eq, Ord, Show)
 data Space   = Occupied Player | Empty | Null deriving (Eq, Show)
@@ -24,8 +24,8 @@ instance Show State where
                 concatMap (\c ->
                     case grid state ! (r, c) of
                         Empty -> "[ ]"
-                        Occupied Min -> "[I]"
-                        Occupied Max -> "[X]"
+                        Occupied Min -> "[-]"
+                        Occupied Max -> "[+]"
                 ) [0..6]
         ) [0..5]
 

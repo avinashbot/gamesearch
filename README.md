@@ -1,5 +1,7 @@
 **(gamesearch is)**
-- an implementation of **Monte Carlo Tree Search** in Haskell.
+- a mostly general-purpose implementation of **Monte Carlo Tree Search**.
+- written in **purely functional Haskell**.
+- contained in **150 lines** ([TreeSearch.hs](https://github.com/avinashbot/gamesearch/blob/master/src/Game/GameSearch/TreeSearch.hs)).
 - made by [**@avinashbot**](https://github.com/avinashbot).
 
 **(gamesearch has)**

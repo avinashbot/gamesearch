@@ -11,12 +11,12 @@ module Game.GameSearch.TreeSearch
     , monteCarlo
     ) where
 
-import qualified Data.Map.Strict as Map
-import Data.List (find)
-import Data.Maybe (fromJust, isJust)
-import System.Random (StdGen)
-import Data.Random (sampleState)
-import Data.Random.Distribution.Categorical (weightedCategorical)
+import qualified Data.Map.Strict                      as Map
+import           Data.List                            (find)
+import           Data.Maybe                           (fromJust, isJust)
+import           System.Random                        (StdGen)
+import           Data.Random                          (sampleState)
+import           Data.Random.Distribution.Categorical (weightedCategorical)
 
 -- A game specfication, containing the state type, action type and player type.
 class (Ord a, Ord p) => Spec s a p | s -> a, s -> p where

@@ -1,11 +1,10 @@
 module Main (main) where
 
-import           Data.Maybe             (fromJust, isJust)
-import           Game.GameSearch           (Spec (..), bestAction, empty,
-                                         timedMCTS)
-import           Game.GameSearch.TicTacToe (Draw (..), State(..), Player, start, winner)
-import           System.IO              (hFlush, stdout)
-import           System.Random          (getStdGen)
+import Data.Maybe                (fromJust, isJust)
+import Game.GameSearch           (Spec (..), bestAction, empty, timedMCTS)
+import Game.GameSearch.TicTacToe (Draw (..), State(..), Player, start, winner)
+import System.IO                 (hFlush, stdout)
+import System.Random             (getStdGen)
 
 main :: IO ()
 main = continue start
