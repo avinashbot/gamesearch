@@ -1,11 +1,11 @@
 {-# LANGUAGE BangPatterns #-}
 
 module Game.GameSearch
-    ( module Game.GameSearch.TreeSearch
+    ( module Game.GameSearch.Core
     , timedMCTS
     ) where
 
-import Game.GameSearch.TreeSearch
+import Game.GameSearch.Core
 import System.CPUTime (getCPUTime)
 import System.Random  (StdGen)
 

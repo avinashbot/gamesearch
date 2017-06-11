@@ -51,7 +51,7 @@ library
     , Game.GameSearch.ConnectFour
     , Game.GameSearch.TicTacToe
   other-modules:
-      Game.GameSearch.TreeSearch
+      Game.GameSearch.Core
 
 test-suite spec
   hs-source-dirs: test

@@ -1,7 +1,7 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module Game.GameSearch.TreeSearch
+module Game.GameSearch.Core
     ( Spec(..)
     , Node
 
