@@ -14,7 +14,7 @@ module Game.GameSearch.Core
 import           Data.List                            (find, maximumBy)
 import           Data.Map.Strict                      ((!))
 import qualified Data.Map.Strict                      as Map
-import           Data.Maybe                           (fromJust, isJust)
+import           Data.Maybe                           (maybe)
 import           Data.Ord                             (comparing)
 import           Data.Random                          (sampleState)
 import           Data.Random.Distribution.Categorical (weightedCategorical)
@@ -77,9 +77,9 @@ bestAction node state =
     Map.map (\child -> meanPayouts child ! player state) (children node)
 
 -- Exported monte carlo function.
--- Essentially the "selection" function, but drops the payout results.
+-- Essentially the "select" function, but drops the payout results.
 monteCarlo :: Spec s a p => StdGen -> s -> Node a p -> (StdGen, Node a p)
-monteCarlo rand state node = fst (selection rand state node)
+monteCarlo rand state node = fst (select rand state node)
 
 --
 -- Monte Carlo Tree Search
@@ -87,38 +87,41 @@ monteCarlo rand state node = fst (selection rand state node)
 
 -- Run monte carlo simulation, returning the updated node, the updated
 -- random generator, and the resulting payout of the simulation.
---
--- If the state is final, just add the current payouts and return.
--- If there is an unexpanded action, create a new node and simulate from there.
--- Otherwise, just use plain UCT to pick a child.
-selection :: Spec s a p
+select :: Spec s a p
              => StdGen -> s -> Node a p
              -> ((StdGen, Node a p), Map.Map p Double)
-selection rand state node
-    | null (actions state) =
-        let curPayouts = Map.fromList (payouts state)
-        in ((rand, addPayouts curPayouts node), curPayouts)
+select rand state node
+    | null (actions state) = selectFinal rand state node
     | otherwise =
-        case findUnexpanded state node of
-            Just unexpanded -> selectSim rand state unexpanded node
-            Nothing -> selectUCT rand state node
+        maybe
+            (selectNext rand state node) -- Perform selection based on UCT
+            (expand rand state node)     -- Perform expansion if unexpanded
+            (findUnexpanded state node)
+
+-- Update the node's payouts assuming the state is the final state.
+selectFinal :: (Spec s a p)
+               => StdGen -> s -> Node a p
+               -> ((StdGen, Node a p), Map.Map p Double)
+selectFinal rand state node =
+    let curPayouts = Map.fromList (payouts state)
+    in ((rand, addPayouts curPayouts node), curPayouts)
 
 -- Recursively call select on a child of this tree based on UCT.
-selectUCT :: (Spec s a p)
+selectNext :: (Spec s a p)
              => StdGen -> s -> Node a p
              -> ((StdGen, Node a p), Map.Map p Double)
-selectUCT rand state node =
+selectNext rand state node =
     ((newRand, backprop action newPayouts child node), newPayouts)
     where
         action = uct state node
         ((newRand, child), newPayouts) =
-            selection rand (apply action state) (children node ! action)
+            select rand (apply action state) (children node ! action)
 
 -- Create a new node and simulate from there.
-selectSim :: (Spec s a p)
-             => StdGen -> s -> a -> Node a p
+expand :: (Spec s a p)
+             => StdGen -> s -> Node a p -> a
              -> ((StdGen, Node a p), Map.Map p Double)
-selectSim rand state action node = ((newRand, newNode), newPayouts) where
+expand rand state node action = ((newRand, newNode), newPayouts) where
     (newRand, newPayouts) = simulate rand (apply action state)
     newNode = backprop action newPayouts (singleton newPayouts) node
 
