@@ -108,6 +108,6 @@ isWinningMove grid (r, c) player =
 -- Safe array lookup
 safe :: Array (Int, Int) Space -> (Int, Int) -> Space
 safe arr (row, col)
-    | row < minRow || row > maxRow || col < minCol || col > maxRow = Null
+    | row < minRow || row > maxRow || col < minCol || col > maxCol = Null
     | otherwise = arr ! (row, col)
     where ((minRow, minCol), (maxRow, maxCol)) = bounds arr

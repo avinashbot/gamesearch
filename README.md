@@ -4,6 +4,4 @@
 
 **(gamesearch has)**
 - demos for **Tic Tac Toe**, **Connect Four**, and **Go Fish (WIP)**.
-
-**(gamesearch doesn't have)**
-- support for **heavy** playouts.
+- support for **weighted (heavy) playouts**.
