@@ -1,18 +1,17 @@
 module Main (main) where
 
-import           Data.Maybe               (fromJust, isJust)
-import           Game.GameSearch             (apply, bestAction, empty,
-                                           timedMCTS)
-import           Game.GameSearch.ConnectFour (Drop (..), State, start, winner)
-import           System.CPUTime           (getCPUTime)
-import           System.IO                (hFlush, stdout)
-import           System.Random            (getStdGen)
+import Control.Monad               ((<=<))
+import Data.Maybe                  (isJust, fromJust)
+import Game.GameSearch             (Node, apply, bestAction, empty, timedMCTS, child)
+import Game.GameSearch.ConnectFour (State, Drop (..), Player, start, winner)
+import System.IO                   (hFlush, stdout)
+import System.Random               (getStdGen)
 
 main :: IO ()
-main = continue start
+main = continue start empty
 
-continue :: State -> IO ()
-continue state = do
+continue :: State -> Node Drop Player -> IO ()
+continue state node = do
     -- Run MCTS for 5 seconds.
     rand      <- getStdGen
     finalNode <- timedMCTS 5 rand state empty
@@ -33,7 +32,9 @@ continue state = do
         uinput <- getLine
 
         -- Check if it's a winning move, else go back.
-        let playerState = apply (Drop (read uinput)) computerState
+        let playerAction = Drop (read uinput)
+        let playerState = apply playerAction computerState
         if   isJust (winner playerState)
         then putStrLn "Player Wins"
-        else continue playerState
+        else continue playerState $
+             fromJust ((child playerAction <=< child computerAction) node)

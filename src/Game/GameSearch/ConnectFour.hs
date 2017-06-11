@@ -1,6 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module Game.GameSearch.ConnectFour (start, State(..), Drop(..)) where
+module Game.GameSearch.ConnectFour (start, State(..), Drop(..), Player(..)) where
 
 import           Data.Array.IArray       (Array, array, bounds, (!), (//))
 import           Data.Ix                 (range)
