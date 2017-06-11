@@ -12,8 +12,9 @@ module Game.GameSearch.Core
     ) where
 
 import qualified Data.Map.Strict                      as Map
-import           Data.List                            (find)
+import           Data.List                            (find, maximumBy)
 import           Data.Maybe                           (fromJust, isJust)
+import           Data.Ord                             (comparing)
 import           System.Random                        (StdGen)
 import           Data.Random                          (sampleState)
 import           Data.Random.Distribution.Categorical (weightedCategorical)
@@ -47,7 +48,7 @@ child action node = Map.lookup action (children node)
 -- Returns the best action from a given node and state.
 bestAction :: Spec s a p => Node a p -> s -> a
 bestAction node state =
-    fst . fMax snd . Map.toList $
+    fst . maximumBy (comparing snd) . Map.toList $
     Map.map (\child -> meanPayouts child Map.! player state) (children node)
 
 -- Exported monte carlo function.
@@ -123,26 +124,20 @@ findUnexpanded state node = find isUnexpanded (map snd (actions state)) where
 -- Finds the best action under UCB1 to continue selection.
 -- This function assumes that there are no unexpanded nodes or terminal nodes.
 uct :: (Spec s a p) => s -> Node a p -> a
-uct state node = fMax getScore (map snd (actions state)) where
+uct state node = maximumBy (comparing getScore) (map snd (actions state)) where
     getScore action = ucb (children node Map.! action)
     ucb childNode = (meanPayouts childNode Map.! player state) +
                     sqrt 2 * (sqrt (log (playCount node)) / playCount childNode)
-
--- fMax replaces `sortOn` in uct with a O(n) maximum function.
-fMax :: Ord b => (a -> b) -> [a] -> a
-fMax f a = fst (fMax' f a) where
-    fMax' _ []  = error "cannot find max of empty list"
-    fMax' f [x] = (x, f x)
-    fMax' f (x:ys) = let (val, comp) = fMax' f ys in
-                     if f x > comp then (x, f x) else (val, comp)
 
 -- Update a node with the payout.
 addPayouts :: (Ord a, Ord p) => Map.Map p Double -> Node a p -> Node a p
 addPayouts payouts node =
     node
-    { meanPayouts = Map.unionWith addToMean (meanPayouts node) payouts
-    , playCount   = playCount node + 1
+    { meanPayouts =
+          Map.unionWith (addToMean (playCount node)) payouts (meanPayouts node)
+    , playCount = playCount node + 1
     }
-    where
-        addToMean mean payout =
-            (mean * playCount node + payout) / (playCount node + 1)
+
+-- Add a number to a mean, given we know how many numbers make up the mean.
+addToMean :: Double -> Double -> Double -> Double
+addToMean counts number mean = (mean * counts + number) / (counts + 1)
