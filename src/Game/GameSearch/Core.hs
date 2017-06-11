@@ -11,27 +11,52 @@ module Game.GameSearch.Core
     , monteCarlo
     ) where
 
-import qualified Data.Map.Strict                      as Map
 import           Data.List                            (find, maximumBy)
+import           Data.Map.Strict                      ((!))
+import qualified Data.Map.Strict                      as Map
 import           Data.Maybe                           (fromJust, isJust)
 import           Data.Ord                             (comparing)
-import           System.Random                        (StdGen)
 import           Data.Random                          (sampleState)
 import           Data.Random.Distribution.Categorical (weightedCategorical)
+import           System.Random                        (StdGen)
 
 -- A game specfication, containing the state type, action type and player type.
+-- Unfortunately, the action and player types must implement Ord, since they
+-- are stored in a Map.
 class (Ord a, Ord p) => Spec s a p | s -> a, s -> p where
+    -- Returns the legal actions the player can perform from this state,
+    -- preceded by their weights, representing how likely the player will play
+    -- the state.
+    --
+    -- A final state has returns [].
     actions :: s -> [(Double, a)]
-    payouts :: s -> [(p, Double)]
-    apply   :: a -> s -> s
-    player  :: s -> p
 
--- A search node.
-data (Ord a, Ord p) => Node a p = Node
-    { children    :: Map.Map a (Node a p)
+    -- The player whose utilities are maximized for this state.
+    player :: s -> p
+
+    -- If the state is a final state, returns a "map" containing pairs of
+    -- players and their scores. Each player is assummed to maximize their
+    -- payouts.
+    payouts :: s -> [(p, Double)]
+
+    -- Apply an action to a state, returning the resulting state.
+    apply :: a -> s -> s
+
+-- A node in the monte carlo search tree.
+data (Ord a, Ord p) => Node a p =
+    Node
+      -- The children of the node. Each edge is an action that results in the
+      -- child node.
+    { children :: Map.Map a (Node a p)
+      -- The mean payouts for each player in the game.
     , meanPayouts :: Map.Map p Double
-    , playCount   :: Double
+      -- The number of times this node was "played".
+    , playCount :: Double
     }
+
+--
+-- Public Methods
+--
 
 -- Create a blank node.
 empty :: (Ord a, Ord p) => Node a p
@@ -49,24 +74,34 @@ child action node = Map.lookup action (children node)
 bestAction :: Spec s a p => Node a p -> s -> a
 bestAction node state =
     fst . maximumBy (comparing snd) . Map.toList $
-    Map.map (\child -> meanPayouts child Map.! player state) (children node)
+    Map.map (\child -> meanPayouts child ! player state) (children node)
 
 -- Exported monte carlo function.
+-- Essentially the "selection" function, but drops the payout results.
 monteCarlo :: Spec s a p => StdGen -> s -> Node a p -> (StdGen, Node a p)
 monteCarlo rand state node = fst (selection rand state node)
 
+--
+-- Monte Carlo Tree Search
+--
+
 -- Run monte carlo simulation, returning the updated node, the updated
 -- random generator, and the resulting payout of the simulation.
+--
+-- If the state is final, just add the current payouts and return.
+-- If there is an unexpanded action, create a new node and simulate from there.
+-- Otherwise, just use plain UCT to pick a child.
 selection :: Spec s a p
-              => StdGen -> s -> Node a p
-              -> ((StdGen, Node a p), Map.Map p Double)
+             => StdGen -> s -> Node a p
+             -> ((StdGen, Node a p), Map.Map p Double)
 selection rand state node
-    | null (actions state) = ((rand, addPayouts curPayouts node), curPayouts)
-    | isJust unexpanded    = selectSim rand state (fromJust unexpanded) node
-    | otherwise            = selectUCT rand state node
-    where
-        curPayouts = Map.fromList (payouts state)
-        unexpanded = findUnexpanded state node
+    | null (actions state) =
+        let curPayouts = Map.fromList (payouts state)
+        in ((rand, addPayouts curPayouts node), curPayouts)
+    | otherwise =
+        case findUnexpanded state node of
+            Just unexpanded -> selectSim rand state unexpanded node
+            Nothing -> selectUCT rand state node
 
 -- Recursively call select on a child of this tree based on UCT.
 selectUCT :: (Spec s a p)
@@ -77,7 +112,7 @@ selectUCT rand state node =
     where
         action = uct state node
         ((newRand, child), newPayouts) =
-            selection rand (apply action state) (children node Map.! action)
+            selection rand (apply action state) (children node ! action)
 
 -- Create a new node and simulate from there.
 selectSim :: (Spec s a p)
@@ -85,8 +120,7 @@ selectSim :: (Spec s a p)
              -> ((StdGen, Node a p), Map.Map p Double)
 selectSim rand state action node = ((newRand, newNode), newPayouts) where
     (newRand, newPayouts) = simulate rand (apply action state)
-    newNode =
-        backprop action newPayouts (singleton newPayouts) node
+    newNode = backprop action newPayouts (singleton newPayouts) node
 
 -- Simulates the game randomly from a starting state.
 simulate :: Spec s a p => StdGen -> s -> (StdGen, Map.Map p Double)
@@ -118,16 +152,17 @@ singleton payoutMap =
 -- If it returns Just a, start simulating from (a).
 -- If it returns Nothing, continue selecting down using the uct function.
 findUnexpanded :: Spec s a p => s -> Node a p -> Maybe a
-findUnexpanded state node = find isUnexpanded (map snd (actions state)) where
-    isUnexpanded action = Map.notMember action (children node)
+findUnexpanded state node =
+    find (`Map.notMember` children node) (map snd (actions state))
 
 -- Finds the best action under UCB1 to continue selection.
 -- This function assumes that there are no unexpanded nodes or terminal nodes.
 uct :: (Spec s a p) => s -> Node a p -> a
-uct state node = maximumBy (comparing getScore) (map snd (actions state)) where
-    getScore action = ucb (children node Map.! action)
-    ucb childNode = (meanPayouts childNode Map.! player state) +
-                    sqrt 2 * (sqrt (log (playCount node)) / playCount childNode)
+uct state node =
+    maximumBy (comparing (ucb . (children node !))) (map snd (actions state))
+    where
+        ucb child = (meanPayouts child ! player state) +
+                    sqrt 2 * (sqrt (log (playCount node)) / playCount child)
 
 -- Update a node with the payout.
 addPayouts :: (Ord a, Ord p) => Map.Map p Double -> Node a p -> Node a p
