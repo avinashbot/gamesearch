@@ -5,7 +5,7 @@
 - made by [**@avinashbot**](https://github.com/avinashbot).
 
 **(gamesearch has)**
-- demos for **Tic Tac Toe**, **Connect Four**, and **Go Fish (WIP)**.
+- demos for **Tic Tac Toe**, **Connect Four**, and **Oware (WIP)**.
 - support for **weighted (heavy) playouts**.
 
 **(gamesearch doesn't yet)**
