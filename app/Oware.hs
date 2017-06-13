@@ -1,58 +1,31 @@
 module Main (main) where
 
-import Data.Maybe                (fromJust, isJust)
 import Game.GameSearch           (Spec (..), bestAction, empty, timedMCTS)
 import Game.GameSearch.Oware     (Board (..), Action (..), start)
 import System.IO                 (hFlush, stdout)
 import System.Random             (getStdGen)
 
 main :: IO ()
-main = do
+main = continue start
+
+continue :: Board -> IO ()
+continue state = do
+    print state
+
+    -- Run MCTS for 2 seconds.
     rand      <- getStdGen
     finalNode <- timedMCTS 5 rand state empty
-    print (actions state)
-    print (scores state)
-    print state
-    print (bestAction finalNode state)
-    where
-        state =
-            apply (Action 6) $
-            apply (Action 4) $
-            apply (Action 11) $
-            apply (Action 5) $
-            apply (Action 7) $
-            apply (Action 3) $
-            apply (Action 7) $
-            apply (Action 2) $
-            apply (Action 11) $
-            apply (Action 5) $
-            apply (Action 10) $
-            apply (Action 1) $
-            apply (Action 11) $
-            apply (Action 0) $
-            apply (Action 8) $
-            apply (Action 1) $
-            apply (Action 11) $
-            apply (Action 4) $
-            apply (Action 10) $
-            apply (Action 0) $
-            apply (Action 9) $
-            apply (Action 0) $
-            apply (Action 10) $
-            apply (Action 2) $
-            apply (Action 11) $
-            apply (Action 1) $
-            apply (Action 6) $
-            apply (Action 1) $
-            apply (Action 11) $
-            apply (Action 5) $
-            apply (Action 7) $
-            apply (Action 4) $
-            apply (Action 8) $
-            apply (Action 2) $
-            apply (Action 11) $
-            apply (Action 0) $
-            apply (Action 10) $
-            apply (Action 5) $
-            apply (Action 11) $
-            apply (Action 3) start
+
+    -- Pick the move with the best outcome.
+    let computerAction = bestAction finalNode state
+    let computerBoard = apply computerAction state
+    putStrLn ("Computer Chose: " ++ show computerAction)
+
+    -- Ask player for their move.
+    putStr "Player Move (6..11): "
+    hFlush stdout
+    uinput <- getLine
+
+    -- Check if it's a winning move, else go back.
+    let playerBoard = apply (Action (read uinput)) computerBoard
+    continue playerBoard

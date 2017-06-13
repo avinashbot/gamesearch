@@ -39,11 +39,13 @@ instance Show Board where
                  sm ++ "[" ++ show (grid board `Seq.index` (17 - ix)) ++ "] ")
             ""
             [6 .. 11] ++
+            "(" ++ show (snd (scores board)) ++ ")" ++
         "\nMax -> " ++
         foldl
             (\sm ix -> sm ++ "[" ++ show (grid board `Seq.index` ix) ++ "] ")
             ""
-            [0 .. 5]
+            [0 .. 5] ++
+            "(" ++ show (fst (scores board)) ++ ")"
 
 instance Spec Board Action Player where
     actions = validActions
@@ -57,22 +59,36 @@ instance Spec Board Action Player where
         }
     -- Returns a payout of 1 if we won, 0 if we lost.
     payouts b
-        | winner b == Just (Definite Max) = [(Max, fst (scores b)), (Min, -(fst (scores b)))]
-        | winner b == Just (Definite Min) = [(Max, -(snd (scores b))), (Min, snd (scores b))]
+        | winner b == Just (Definite Max) =
+            [(Max, 1.0), (Min, -1.0)]
+        | winner b == Just (Definite Min) =
+            [(Max, -1.0), (Min, 1.0)]
         | winner b == Just Tie = [(Max, 0.0), (Min, 0.0)]
-        | isNothing (winner b) && null (actions b) = [(Max, 0.0), (Min, 0.0)]
+        | isNothing (winner b) && null (actions b) =
+            [ (Max, if uncurry (>) (scores b) then 1.0 else -1.0)
+            , (Min, if uncurry (>) (scores b) then -1.0 else 1.0)
+            ]
 
 start :: Board
 start = Board {grid = Seq.replicate 12 4, scores = (0, 0), turn = Max}
+
+winner :: Board -> Maybe Winner
+winner board
+    | fst (scores board) > 24 = Just (Definite Max)
+    | snd (scores board) > 24 = Just (Definite Min)
+    | fst (scores board) == 24 && snd (scores board) == 24 = Just Tie
+    | otherwise = Nothing
 
 -- TODO: remove actions that would starve the opponent.
 validActions :: Board -> [(Double, Action)]
 validActions board =
     map (\a -> (1, Action a)) $
-    filter (\i -> (grid board `Seq.index` i) > 0) $
-    if turn board == Max
-        then [0 .. 5]
-        else [6 .. 11]
+    filter (\i -> (grid board `Seq.index` i) > 0) selfRange
+  where
+    (selfRange, oppRange) =
+        if turn board == Max
+            then ([0 .. 5], [6 .. 11])
+            else ([6 .. 11], [0 .. 5])
 
 -- Start sowing seeds from a pot.
 sow :: Action -> Board -> Board
@@ -119,10 +135,3 @@ canScore count = count == 1 || count == 2
 next :: Int -> Int
 next 11 = 0
 next i = i + 1
-
-winner :: Board -> Maybe Winner
-winner board
-    | fst (scores board) > 24 = Just (Definite Max)
-    | snd (scores board) > 24 = Just (Definite Min)
-    | fst (scores board) == 24 && snd (scores board) == 24 = Just Tie
-    | otherwise = Nothing
