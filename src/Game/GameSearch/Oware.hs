@@ -1,8 +1,13 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
+{-
+Example board:
+     [10] [9] [8] [7] [6]
+[11]                      [5]
+     [ 0] [1] [2] [3] [4]
+-}
 module Game.GameSearch.Oware
-    ( Board(..)
-    , Action(..)
+    ( State(..)
     , Player(..)
     , start
     ) where
@@ -11,127 +16,135 @@ import Data.Maybe (isNothing)
 import qualified Data.Sequence as Seq
 import Game.GameSearch (Spec(..))
 
+-- A mancala board stores the number of houses on each side along with the
+-- number of seeds currently in each house.
+--
+-- The size of the board (houses * 2 + 2) is guaranteed to be even.
+type Board = Seq.Seq Int
+
+-- A player is either us (Max) or the opponent (Min)
 data Player
     = Max
     | Min
     deriving (Eq, Ord, Show)
 
-data Winner
-    = Definite Player
-    | Tie
-    deriving (Eq)
+-- Represents the current player and the state.
+data State =
+    State Board
+          Player
 
-newtype Action =
-    Action Int
-    deriving (Eq, Ord, Show)
-
-data Board = Board
-    { grid :: Seq.Seq Int
-    , scores :: (Double, Double)
-    , turn :: Player
-    }
-
-instance Show Board where
-    show board =
-        "Min -> " ++
+instance Show State where
+    show (State b _) =
+        "[" ++
+        show (b ! scoring Min b) ++
+        "] " ++
         foldl
-            (\sm ix ->
-                 sm ++ "[" ++ show (grid board `Seq.index` (17 - ix)) ++ "] ")
+            (\sm ix -> sm ++ "[" ++ show (b ! ix) ++ "] ")
             ""
-            [6 .. 11] ++
-            "(" ++ show (snd (scores board)) ++ ")" ++
-        "\nMax -> " ++
-        foldl
-            (\sm ix -> sm ++ "[" ++ show (grid board `Seq.index` ix) ++ "] ")
-            ""
-            [0 .. 5] ++
-            "(" ++ show (fst (scores board)) ++ ")"
+            (reverse (houses Min b)) ++
+        "\n    " ++
+        foldl (\sm ix -> sm ++ "[" ++ show (b ! ix) ++ "] ") "" (houses Max b) ++
+        "[" ++ show (b ! scoring Max b) ++ "]"
 
-instance Spec Board Action Player where
-    actions = validActions
-    player = turn
-    apply a b =
-        (sow a b)
-        { turn =
-              if turn b == Max
-                  then Min
-                  else Max
-        }
-    -- Returns a payout of 1 if we won, 0 if we lost.
-    payouts b
-        | winner b == Just (Definite Max) =
-            [(Max, 1.0), (Min, -1.0)]
-        | winner b == Just (Definite Min) =
-            [(Max, -1.0), (Min, 1.0)]
-        | winner b == Just Tie = [(Max, 0.0), (Min, 0.0)]
-        | isNothing (winner b) && null (actions b) =
-            [ (Max, if uncurry (>) (scores b) then 1.0 else -1.0)
-            , (Min, if uncurry (>) (scores b) then -1.0 else 1.0)
-            ]
+instance Spec State Int Player where
+    actions = availDrops
+    player (State _ player) = player
+    apply = placeFrom
+    payouts (State board player)
+        | score Max board > score Min board = [(Max, 1.0), (Min, -1.0)]
+        | score Max board < score Min board = [(Min, 1.0), (Max, -1.0)]
+        | otherwise = [(Max, 0.0), (Min, 0.0)]
 
-start :: Board
-start = Board {grid = Seq.replicate 12 4, scores = (0, 0), turn = Max}
+--
+(!) :: Seq.Seq a -> Int -> a
+(!) = Seq.index
 
-winner :: Board -> Maybe Winner
-winner board
-    | fst (scores board) > 24 = Just (Definite Max)
-    | snd (scores board) > 24 = Just (Definite Min)
-    | fst (scores board) == 24 && snd (scores board) == 24 = Just Tie
-    | otherwise = Nothing
+--
+start h s = State (start' h s) Max
 
--- TODO: remove actions that would starve the opponent.
-validActions :: Board -> [(Double, Action)]
-validActions board =
-    map (\a -> (1, Action a)) $
-    filter (\i -> (grid board `Seq.index` i) > 0) selfRange
+--
+start' houses seeds = Seq.update (scoring Min board2) 0 board2
   where
-    (selfRange, oppRange) =
-        if turn board == Max
-            then ([0 .. 5], [6 .. 11])
-            else ([6 .. 11], [0 .. 5])
+    board2 = Seq.update (scoring Max board) 0 board
+    board = Seq.replicate (houses * 2 + 2) seeds
 
--- Start sowing seeds from a pot.
-sow :: Action -> Board -> Board
-sow (Action pos) board =
-    fst $
-    propagate
-        (grid board `Seq.index` pos)
-        (next pos)
-        board {grid = Seq.update pos 0 (grid board)}
+-- Returns the opponent of the player
+opponent :: Player -> Player
+opponent Max = Min
+opponent Min = Max
 
--- Deposit a number of stones from a certain position on the board.
-propagate :: Int -> Int -> Board -> (Board, Bool)
-propagate 0 _ board = (board, True)
-propagate i pos board'
-    | oppHome pos board && canScore (grid board `Seq.index` pos) && canCapture =
-        ( board
-          { grid = Seq.update pos 0 (grid board)
-          , scores = addScore ((grid board `Seq.index` pos) + 1) board
-          }
-        , True)
-    | otherwise = (board {grid = Seq.adjust (+ 1) pos (grid board)}, False)
+-- The oppsite house of a position.
+opposite :: Board -> Int -> Int
+opposite board pos = (Seq.length board - 2) - pos
+
+-- Returns the index of the store of the player.
+scoring :: Player -> Board -> Int
+scoring Max board = (Seq.length board `div` 2) - 1
+scoring Min board = Seq.length board - 1
+
+-- Returns whether the position is in a house of the player
+houseof :: Player -> Board -> Int -> Bool
+houseof Max board pos = pos > 0 && pos < scoring Max board
+houseof Min board pos = pos > scoring Max board && pos < scoring Min board
+
+-- Returns the next position a player can drop a seed in.
+next :: Player -> Board -> Int -> Int
+next player board pos =
+    mod
+        (if (pos + 1) == scoring (opponent player) board
+             then pos + 2
+             else pos + 1)
+        (Seq.length board)
+
+-- Place a number of seeds at a position for a player on a board.
+-- Returns the board and the final position, for efficiency.
+place :: Int -> Int -> Player -> Board -> (Board, Int)
+place 1 pos ply board = (Seq.adjust (+ 1) pos board, pos)
+place count pos ply board =
+    let (updated, lastPos) = place (count - 1) (next ply board pos) ply board
+    in (Seq.adjust (+ 1) pos updated, lastPos)
+
+-- Clear all seeds from a position
+clear :: Int -> Board -> Board
+clear = Seq.update 0
+
+-- Returns the player who will play the next turn based on the ending position
+-- of a move.
+nextturn :: Int -> Board -> Player -> Player
+nextturn finalpos board ply
+    -- If the final position is the own player's store.
+    | finalpos == scoring ply board = ply
+    -- Otherwise, it's the opponent's turn.
+    | otherwise = opponent ply
+
+-- The player's score.
+score :: Player -> Board -> Int
+score ply board =
+    (board ! scoring ply board) + sum (map (board !) (houses ply board))
+
+houses :: Player -> Board -> [Int]
+houses Max board = [0 .. (scoring Max board - 1)]
+houses Min board = [(scoring Max board + 1) .. (scoring Min board - 1)]
+
+-- TODO: cutoff when you have most of the points
+availDrops :: State -> [(Double, Int)]
+availDrops (State board ply) =
+    map (\i -> (1.0, i)) $ filter (\i -> board ! i > 0) (houses ply board)
+
+-- Apply :|
+placeFrom :: Int -> State -> State
+placeFrom pos (State board ply) = State checked (nextturn final checked ply)
   where
-    (board, canCapture) = propagate (i - 1) (next pos) board'
-
--- Add pebbles to the current player of the board.
-addScore :: Int -> Board -> (Double, Double)
-addScore num board =
-    case turn board of
-        Max -> (fst (scores board) + fromIntegral num, snd (scores board))
-        Min -> (fst (scores board), snd (scores board) + fromIntegral num)
-
--- Whether the position can be scored on.
-oppHome :: Int -> Board -> Bool
-oppHome pos board =
-    case turn board of
-        Max -> pos >= 6 && pos < 12
-        Min -> pos >= 0 && pos < 6
-
--- Whether the count, when added, can lead to capture.
-canScore :: Int -> Bool
-canScore count = count == 1 || count == 2
-
--- The next index.
-next :: Int -> Int
-next 11 = 0
-next i = i + 1
+    checked =
+        if houseof ply board final &&
+           board ! final == 0 && board ! opposite board final > 0
+            then Seq.update
+                     (opposite updated final)
+                     0
+                     (Seq.adjust
+                          (+ ((updated ! opposite updated final) + 1))
+                          (scoring ply updated)
+                          (Seq.update final 0 updated))
+            else updated
+    (updated, final) = place (board ! pos) (next ply board pos) ply cleared
+    cleared = Seq.update pos 0 board

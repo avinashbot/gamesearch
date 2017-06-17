@@ -11,10 +11,10 @@ import System.Random  (StdGen)
 
 -- Run monte carlo search for a given number of seconds.
 timedMCTS ::
-    Spec s a p => Integer -> StdGen -> s -> Node a p -> IO (Node a p)
+    Spec s a p => Double -> StdGen -> s -> Node a p -> IO (Node a p)
 timedMCTS seconds r s n = do
     curTime <- getCPUTime
-    timedMCTS' (curTime + seconds * 1000000000000) r s n
+    timedMCTS' (curTime + floor (seconds * 1000000000000)) r s n
 
 -- Run monte carlo search until cpuTime hits a certain value. Prevents issues
 -- clock drift during computation. BangPatterns prevents lazy computation so
