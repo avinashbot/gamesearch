@@ -26,9 +26,9 @@ executable connectfour
     , gamesearch
     , random >= 1.1 && < 1.2
 
-executable oware
+executable mancala
   hs-source-dirs:   app
-  main-is:          Oware.hs
+  main-is:          Mancala.hs
   ghc-options:      -threaded -rtsopts -with-rtsopts=-N
   default-language: Haskell2010
   build-depends:
@@ -59,7 +59,7 @@ library
   exposed-modules:
       Game.GameSearch
     , Game.GameSearch.ConnectFour
-    , Game.GameSearch.Oware
+    , Game.GameSearch.Mancala
     , Game.GameSearch.TicTacToe
   other-modules:
       Game.GameSearch.Core

@@ -5,7 +5,7 @@
 - made by [**@avinashbot**](https://github.com/avinashbot).
 
 **(gamesearch has)**
-- demos for **Tic Tac Toe**, **Connect Four**, and **Oware (WIP)**.
+- demos for **Tic Tac Toe**, **Connect Four**, and **Mancala (Kalah)**.
 - support for **weighted (heavy) playouts**.
 
 **(gamesearch doesn't yet)**
